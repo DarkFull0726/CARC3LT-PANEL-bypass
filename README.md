@@ -1,4 +1,5 @@
-# 🚀 CARC 3LT PANEL PRO V.1.1_Beta🚀
+# 🚀 CARC 3LT PANEL PRO V.1.1_Beta
+violado por @DarkZFull Bypass🚀
 
 Panel profesional de administración para servidores VPS. Optimizado para ventas de servicios VPN/SSH con herramientas de auto-reparación y seguridad SSL.
 
