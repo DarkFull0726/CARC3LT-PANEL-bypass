@@ -4,7 +4,7 @@
 # ---------------------------------------------------------
 
 # --- CONFIGURACIÓN ---
-REPO="https://raw.githubusercontent.com/carc3lt1/CARC3LT-PANEL/main"
+REPO="https://raw.githubusercontent.com/DarkFull0726/CARC3LT-PANEL-bypass/main"
 DIR_BASE="/etc/carc3lt"
 DIR_MOD="$DIR_BASE/modules"
 DIR_TOOL="$DIR_BASE/tools"
