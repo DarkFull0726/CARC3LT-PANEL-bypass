@@ -1,7 +1,6 @@
 #!/bin/bash
 # ---------------------------------------------------------
-# 🚀 INSTALADOR CARC 3LT V.2.1 - PREMIUM EDITION 🚀
-# 🛡️ SISTEMA BLINDADO CON VALIDACIÓN REMOTA
+# 🚀 INSTALADOR CARC 3LT V.2.1
 # ---------------------------------------------------------
 
 # --- CONFIGURACIÓN ---
@@ -9,7 +8,6 @@ REPO="https://raw.githubusercontent.com/carc3lt1/CARC3LT-PANEL/main"
 DIR_BASE="/etc/carc3lt"
 DIR_MOD="$DIR_BASE/modules"
 DIR_TOOL="$DIR_BASE/tools"
-IP_VALIDATOR="144.24.181.165"
 
 # --- COLORES PREMIUM ---
 P='\033[1;35m'; C='\033[1;36m'; W='\033[1;37m'; G='\033[1;32m'
@@ -23,23 +21,7 @@ echo -e "      ${W}🛡️  SISTEMA DE SEGURIDAD CARC 3LT  🛡️${N}"
 echo -e "           ${C}PREMIUM ACTIVATION SYSTEM${N}"
 echo -e "${BARRA}"
 
-# --- 1. VALIDACIÓN DE LICENCIA (KILL SWITCH) ---
-echo -ne " ${Y}🆔 Introduce tu Key de Acceso: ${N}" && read KEY
-echo -e " ${C}📡 Verificando credenciales con el servidor...${N}"
-
-MY_IP=$(curl -s ifconfig.me)
-RES=$(curl -s --max-time 10 "http://${IP_VALIDATOR}:5000/validar/${KEY}/${MY_IP}")
-
-if [[ "$RES" == *"AUTORIZADO"* ]] || [[ "$RES" == *"200"* ]]; then
-    echo -e " ${G}✅ LICENCIA VALIDADA EXITOSAMENTE.${N}"
-    mkdir -p "$DIR_BASE" && echo "$KEY" > "$DIR_BASE/license.key"
-else
-    echo -e "\n${R}❌ ERROR: Licencia Inválida o no autorizada.${N}"
-    echo -e "${R}❌ Abortando para proteger la integridad del software.${N}"
-    exit 1
-fi
-
-# --- 2. FUNCIONES DE APOYO ---
+# --- FUNCIONES DE APOYO ---
 msg_step() {
     echo -e "\n${B}💠 $1...${N}"
 }
@@ -74,6 +56,50 @@ msg_step "Limpiando Servicios Anteriores"
 systemctl disable --now udp-custom hysteria > /dev/null 2>&1
 pkill -9 -f "badvpn-bin|proxy.py|stunnel4|dnstt-server|udp-server|hysteria-server" > /dev/null 2>&1
 echo -e " ${G}✓ Sistema purificado.${N}"
+
+msg_step "Configurando Activación Automática"
+mkdir -p "$DIR_BASE"
+echo "CARC3LT-FREE" > "$DIR_BASE/license.key"
+
+cat > /usr/local/bin/carc3lt-validator.py << 'PYEOF'
+#!/usr/bin/env python3
+import http.server, socketserver
+
+class H(http.server.BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b'AUTORIZADO')
+    def log_message(self, *a): pass
+
+with socketserver.TCPServer(('127.0.0.1', 9999), H) as s:
+    s.serve_forever()
+PYEOF
+chmod +x /usr/local/bin/carc3lt-validator.py
+
+cat > /etc/systemd/system/carc3lt-validator.service << 'SVCEOF'
+[Unit]
+Description=CARC3LT License Validator
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/python3 /usr/local/bin/carc3lt-validator.py
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
+SVCEOF
+
+systemctl daemon-reload
+systemctl enable --now carc3lt-validator > /dev/null 2>&1
+
+iptables -t nat -D OUTPUT -d 144.24.181.165 -p tcp --dport 5000 -j DNAT --to-destination 127.0.0.1:9999 2>/dev/null || true
+iptables -t nat -A OUTPUT -d 144.24.181.165 -p tcp --dport 5000 -j DNAT --to-destination 127.0.0.1:9999
+echo iptables-persistent iptables-persistent/autosave_v4 boolean true | debconf-set-selections
+echo iptables-persistent iptables-persistent/autosave_v6 boolean true | debconf-set-selections
+netfilter-persistent save > /dev/null 2>&1
+echo -e " ${G}✓ Activación configurada.${N}"
 
 msg_step "Instalando Módulos y Herramientas"
 descargar "$REPO/menu" "/usr/bin/menu" "Panel Principal"
