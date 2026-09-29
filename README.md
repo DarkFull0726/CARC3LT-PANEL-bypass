@@ -9,4 +9,4 @@ Accede a tu VPS y ejecuta el siguiente comando:
 
 ```bash
 
-https://raw.githubusercontent.com/DarkFull0726/CARC3LT-PANEL-bypass/main/install.sh)"
+https://raw.githubusercontent.com/DarkFull0726/CARC3LT-PANEL-bypass/main/install.sh)
