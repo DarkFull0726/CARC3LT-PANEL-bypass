@@ -63,7 +63,7 @@ echo "CARC3LT-FREE" > "$DIR_BASE/license.key"
 
 cat > /usr/local/bin/carc3lt-validator.py << 'PYEOF'
 #!/usr/bin/env python3
-import http.server, socketserver
+import http.server, socketserver, ssl, os, subprocess
 
 class H(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
@@ -72,7 +72,24 @@ class H(http.server.BaseHTTPRequestHandler):
         self.wfile.write(b'AUTORIZADO')
     def log_message(self, *a): pass
 
-with socketserver.TCPServer(('127.0.0.1', 9999), H) as s:
+# Servidor HTTP plano puerto 9999 (para menu viejo -> 144.24.181.165:5000)
+import threading
+def run_http():
+    with socketserver.TCPServer(('127.0.0.1', 9999), H) as s:
+        s.serve_forever()
+threading.Thread(target=run_http, daemon=True).start()
+
+# Certificado autofirmado para HTTPS (panelvpsbot.carc3lt.com -> 443)
+cert = '/etc/carc3lt/bypass.pem'
+if not os.path.exists(cert):
+    subprocess.run(['openssl','req','-x509','-newkey','rsa:2048','-keyout',cert,
+        '-out',cert,'-days','3650','-nodes','-subj','/CN=panelvpsbot.carc3lt.com'],
+        capture_output=True)
+
+ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+ctx.load_cert_chain(cert)
+with socketserver.TCPServer(('0.0.0.0', 443), H) as s:
+    s.socket = ctx.wrap_socket(s.socket, server_side=True)
     s.serve_forever()
 PYEOF
 chmod +x /usr/local/bin/carc3lt-validator.py
@@ -99,6 +116,9 @@ iptables -t nat -A OUTPUT -d 144.24.181.165 -p tcp --dport 5000 -j DNAT --to-des
 echo iptables-persistent iptables-persistent/autosave_v4 boolean true | debconf-set-selections
 echo iptables-persistent iptables-persistent/autosave_v6 boolean true | debconf-set-selections
 netfilter-persistent save > /dev/null 2>&1
+
+# Bypass validador nuevo (panelvpsbot.carc3lt.com -> localhost)
+grep -q "panelvpsbot.carc3lt.com" /etc/hosts || echo "127.0.0.1 panelvpsbot.carc3lt.com" >> /etc/hosts
 echo -e " ${G}✓ Activación configurada.${N}"
 
 msg_step "Instalando Módulos y Herramientas"
