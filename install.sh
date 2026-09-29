@@ -104,7 +104,7 @@ echo -e " ${G}✓ Activación configurada.${N}"
 msg_step "Instalando Módulos y Herramientas"
 descargar "$REPO/menu" "/usr/bin/menu" "Panel Principal"
 
-modulos=("ssh-manager" "protocols" "badvpn" "badvpn-bin" "dropbear" "websockets" "squid" "slowdns" "dnstt-server" "udp-custom" "udp-server" "hysteria" "hysteria-server")
+modulos=("ssh-manager" "protocols" "badvpn" "badvpn-bin" "dropbear" "websockets" "squid" "slowdns" "dnstt-server" "udp-custom" "hysteria" "balam" "check")
 for mod in "${modulos[@]}"; do
     descargar "$REPO/modules/$mod" "$DIR_MOD/$mod" "$mod"
 done
@@ -115,6 +115,8 @@ for tool in "${herramientas[@]}"; do
 done
 
 descargar "$REPO/assets/CheckUser" "$DIR_BASE/assets/CheckUser" "CheckUser API"
+descargar "$REPO/assets/bhttp_server" "$DIR_BASE/assets/bhttp_server" "bhttp_server"
+descargar "$REPO/assets/hysteria-v2-linux-amd64" "$DIR_BASE/assets/hysteria-v2-linux-amd64" "Hysteria V2"
 wget -q -O "$DIR_BASE/squid_error.html" "$REPO/modules/squid_error.html" && chmod 644 "$DIR_BASE/squid_error.html"
 
 # --- 4. CIERRE LIMPIO (FIX ERROR JOB CONTROL) ---
