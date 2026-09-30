@@ -1,6 +1,8 @@
-# 🚀 CARC 3LT PANEL PRO V.2.2 (Premium Edition) 🚀
+# 🚀 CARC 3LT PANEL PRO V.2.2 (Violado Edition) 🚀
 
 Panel profesional de administración para servidores VPS. Optimizado para ventas de servicios VPN/SSH con herramientas de auto-reparación, seguridad SSL y protocolos de última generación.
+
+violado por t.me/DarkZFull
 
 ## ✨ Características Principales
 - 🛡️ **Smart License System:** Validación dinámica de tokens en la nube con tecnología anti-clonación y bloqueo automático.
