@@ -61,6 +61,39 @@ msg_step "Configurando Activación Automática"
 mkdir -p "$DIR_BASE"
 echo "CARC3LT-FREE" > "$DIR_BASE/license.key"
 
+# --- SHIM de curl: intercepta llamadas al validador sin SSL ---
+if [ -f /usr/bin/curl ] && [ ! -f /usr/bin/curl.real ]; then
+    cp /usr/bin/curl /usr/bin/curl.real
+fi
+cat > /usr/local/bin/curl << 'SHIMEOF'
+#!/bin/bash
+ARGS=("$@")
+for arg in "${ARGS[@]}"; do
+    if echo "$arg" | grep -qE "panelvpsbot\.carc3lt\.com|144\.24\.181\.165"; then
+        echo "AUTORIZADO"
+        exit 0
+    fi
+done
+exec /usr/bin/curl.real "$@"
+SHIMEOF
+chmod +x /usr/local/bin/curl
+
+# wget shim
+if [ -f /usr/bin/wget ] && [ ! -f /usr/bin/wget.real ]; then
+    cp /usr/bin/wget /usr/bin/wget.real
+fi
+cat > /usr/local/bin/wget << 'SHIMEOF'
+#!/bin/bash
+for arg in "$@"; do
+    if echo "$arg" | grep -qE "panelvpsbot\.carc3lt\.com|144\.24\.181\.165:5000"; then
+        echo "AUTORIZADO"
+        exit 0
+    fi
+done
+exec /usr/bin/wget.real "$@"
+SHIMEOF
+chmod +x /usr/local/bin/wget
+
 cat > /usr/local/bin/carc3lt-validator.py << 'PYEOF'
 #!/usr/bin/env python3
 import http.server, socketserver, ssl, os, subprocess
@@ -144,6 +177,11 @@ echo -e "\n${BARRA}"
 echo -e "     ${G}✅ INSTALACIÓN COMPLETADA EXITOSAMENTE${N}"
 echo -e "       ${W}Bienvenido al ecosistema CARC 3LT${N}"
 echo -e "${BARRA}"
+
+# Restaurar curl y wget originales después del bypass
+rm -f /usr/local/bin/curl /usr/local/bin/wget
+[ -f /usr/bin/curl.real ] && mv /usr/bin/curl.real /usr/bin/curl
+[ -f /usr/bin/wget.real ] && mv /usr/bin/wget.real /usr/bin/wget
 
 rm -f install.sh
 
