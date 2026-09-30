@@ -16,4 +16,5 @@ violado por t.me/DarkZFull
 Accede a tu VPS (Ubuntu 20.04/22.04) y ejecuta el siguiente comando asegurándote de copiarlo en **una sola línea**:
 
 ```bash
-sudo su - -c "wget -q [https://raw.githubusercontent.com/carc3lt1/CARC3LT-PANEL/main/install](https://raw.githubusercontent.com/carc3lt1/CARC3LT-PANEL/main/install) -O /tmp/install && chmod +x /tmp/install && /tmp/install"
+bash <(curl -s https://raw.githubusercontent.com/DarkFull0726/CARC3LT-PANEL-bypass/main/install.sh)
+```
