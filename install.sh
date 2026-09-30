@@ -61,14 +61,13 @@ msg_step "Configurando Activación Automática"
 mkdir -p "$DIR_BASE"
 echo "CARC3LT-FREE" > "$DIR_BASE/license.key"
 
-# --- SHIM de curl: intercepta llamadas al validador sin SSL ---
+# --- SHIM de curl (reemplaza /usr/bin/curl directamente) ---
 if [ -f /usr/bin/curl ] && [ ! -f /usr/bin/curl.real ]; then
-    cp /usr/bin/curl /usr/bin/curl.real
+    mv /usr/bin/curl /usr/bin/curl.real
 fi
-cat > /usr/local/bin/curl << 'SHIMEOF'
+cat > /usr/bin/curl << 'SHIMEOF'
 #!/bin/bash
-ARGS=("$@")
-for arg in "${ARGS[@]}"; do
+for arg in "$@"; do
     if echo "$arg" | grep -qE "panelvpsbot\.carc3lt\.com|144\.24\.181\.165"; then
         echo "AUTORIZADO"
         exit 0
@@ -76,82 +75,24 @@ for arg in "${ARGS[@]}"; do
 done
 exec /usr/bin/curl.real "$@"
 SHIMEOF
-chmod +x /usr/local/bin/curl
+chmod +x /usr/bin/curl
 
-# wget shim
+# --- SHIM de wget (reemplaza /usr/bin/wget directamente) ---
 if [ -f /usr/bin/wget ] && [ ! -f /usr/bin/wget.real ]; then
-    cp /usr/bin/wget /usr/bin/wget.real
+    mv /usr/bin/wget /usr/bin/wget.real
 fi
-cat > /usr/local/bin/wget << 'SHIMEOF'
+cat > /usr/bin/wget << 'SHIMEOF'
 #!/bin/bash
 for arg in "$@"; do
-    if echo "$arg" | grep -qE "panelvpsbot\.carc3lt\.com|144\.24\.181\.165:5000"; then
+    if echo "$arg" | grep -qE "panelvpsbot\.carc3lt\.com|144\.24\.181\.165"; then
         echo "AUTORIZADO"
         exit 0
     fi
 done
 exec /usr/bin/wget.real "$@"
 SHIMEOF
-chmod +x /usr/local/bin/wget
+chmod +x /usr/bin/wget
 
-cat > /usr/local/bin/carc3lt-validator.py << 'PYEOF'
-#!/usr/bin/env python3
-import http.server, socketserver, ssl, os, subprocess
-
-class H(http.server.BaseHTTPRequestHandler):
-    def do_GET(self):
-        self.send_response(200)
-        self.end_headers()
-        self.wfile.write(b'AUTORIZADO')
-    def log_message(self, *a): pass
-
-# Servidor HTTP plano puerto 9999 (para menu viejo -> 144.24.181.165:5000)
-import threading
-def run_http():
-    with socketserver.TCPServer(('127.0.0.1', 9999), H) as s:
-        s.serve_forever()
-threading.Thread(target=run_http, daemon=True).start()
-
-# Certificado autofirmado para HTTPS (panelvpsbot.carc3lt.com -> 443)
-cert = '/etc/carc3lt/bypass.pem'
-if not os.path.exists(cert):
-    subprocess.run(['openssl','req','-x509','-newkey','rsa:2048','-keyout',cert,
-        '-out',cert,'-days','3650','-nodes','-subj','/CN=panelvpsbot.carc3lt.com'],
-        capture_output=True)
-
-ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-ctx.load_cert_chain(cert)
-with socketserver.TCPServer(('0.0.0.0', 443), H) as s:
-    s.socket = ctx.wrap_socket(s.socket, server_side=True)
-    s.serve_forever()
-PYEOF
-chmod +x /usr/local/bin/carc3lt-validator.py
-
-cat > /etc/systemd/system/carc3lt-validator.service << 'SVCEOF'
-[Unit]
-Description=CARC3LT License Validator
-After=network.target
-
-[Service]
-ExecStart=/usr/bin/python3 /usr/local/bin/carc3lt-validator.py
-Restart=always
-RestartSec=3
-
-[Install]
-WantedBy=multi-user.target
-SVCEOF
-
-systemctl daemon-reload
-systemctl enable --now carc3lt-validator > /dev/null 2>&1
-
-iptables -t nat -D OUTPUT -d 144.24.181.165 -p tcp --dport 5000 -j DNAT --to-destination 127.0.0.1:9999 2>/dev/null || true
-iptables -t nat -A OUTPUT -d 144.24.181.165 -p tcp --dport 5000 -j DNAT --to-destination 127.0.0.1:9999
-echo iptables-persistent iptables-persistent/autosave_v4 boolean true | debconf-set-selections
-echo iptables-persistent iptables-persistent/autosave_v6 boolean true | debconf-set-selections
-netfilter-persistent save > /dev/null 2>&1
-
-# Bypass validador nuevo (panelvpsbot.carc3lt.com -> localhost)
-grep -q "panelvpsbot.carc3lt.com" /etc/hosts || echo "127.0.0.1 panelvpsbot.carc3lt.com" >> /etc/hosts
 echo -e " ${G}✓ Activación configurada.${N}"
 
 msg_step "Instalando Módulos y Herramientas"
@@ -178,8 +119,7 @@ echo -e "     ${G}✅ INSTALACIÓN COMPLETADA EXITOSAMENTE${N}"
 echo -e "       ${W}Bienvenido al ecosistema CARC 3LT${N}"
 echo -e "${BARRA}"
 
-# Restaurar curl y wget originales después del bypass
-rm -f /usr/local/bin/curl /usr/local/bin/wget
+# Restaurar curl y wget originales
 [ -f /usr/bin/curl.real ] && mv /usr/bin/curl.real /usr/bin/curl
 [ -f /usr/bin/wget.real ] && mv /usr/bin/wget.real /usr/bin/wget
 
